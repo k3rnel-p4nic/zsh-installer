@@ -36,7 +36,8 @@ from zsh_download_manager import download_manager
 from tarfile import open as tar_open
 from shutil import move
 from subprocess import run as run_cmd
-
+from urllib.request import urlretrieve, urlopen
+from urllib.parse import urlparse
 
 # Setup Arguments
 
@@ -75,6 +76,56 @@ def which(cmd, returnPath=False):
 
 	return False if not returnPath else None
 
+
+
+def download_manager(url, destdir=os.getcwd(), proxy=None, auth_proxy=None):
+	"""
+	Function to download files using HTTP.
+	Returns: path of the downloaded file
+	"""
+	result = urlopen(url)
+	result_url = result.url
+	result_url_parse = urlparse(result_url)
+	result_path = result_url_parse.path
+	filename = os.path.basename(result_path)
+	filepath = (destdir if destdir[-1] == '/' else destdir + '/') + filename
+
+	def reporthook(count, block_size, total_size):
+		percent = min(int(count * block_size * 100 / total_size), 100)
+		progress_size = int(count * block_size)
+
+		bar_len = 50
+		filled_len = int(round(percent / 2.0))
+		bar = '=' * filled_len + '-' * (bar_len - filled_len)
+
+		if total_size > 1000**3:
+			progress_size /= 1000**3
+			total_size /= 1000**3
+			unit = 'GB'
+
+		elif total_size > 1000**2:
+			progress_size /= 1000**2
+			total_size /= 1000**2
+			unit = 'MB'
+
+		elif total_size > 1000:
+			progress_size /= 1000
+			total_size /= 1000
+			unit = 'KB'
+
+		if progress_size > total_size:
+			progress_size = total_size
+
+		stdout.write(f'\r[{bar}] {percent}%,  {progress_size:.2f} {unit} / {total_size:.2f} {unit}')
+
+
+	if not os.path.exists(filepath):
+		print(f'Downloading {filename}')
+		urlretrieve(url, filepath, reporthook)
+		print('')
+
+	return filepath
+
 # Basic checks
 
 if os.geteuid() == 0:
@@ -99,7 +150,7 @@ download_dir_path = args.download_dir if args.download_dir else os.getcwd()
 # + 'usr/share/zsh/functions --enable-scriptdir=' + zsh_root_path + 'usr/share/zsh/scripts --with-tcsetpgrp --enable-pcre --enable-cap --enable-zsh-secure-free --enable-etcdir=' \
 # + zsh_root_path + 'etc/zsh']
 
-compile_cmd = ['./configure', f'--prefix={zsh_root_path}', f'--enable-multibyte', '--enable-function-subdirs', f'--enable-fndir={zsh_root_path}usr/share/zsh/functions' 
+compile_cmd = ['./configure', f'--prefix={zsh_root_path}', f'--enable-multibyte', '--enable-function-subdirs', f'--enable-fndir={zsh_root_path}usr/share/zsh/functions'
 f'--enable-scriptdir={zsh_root_path}usr/share/zsh/scripts', '--with-tcsetpgrp', '--enable-pcre', '--enable-cap', '--enable-zsh-secure-free', f'--enable-etcdir={zsh_root_path}etc/zsh']
 
 generate_cmd = 'make'
@@ -139,7 +190,7 @@ for path in zsh_tree:
 	except OSError as e:
 		print(f'Error during mkdir: {e}')
 		exit(3)
-		
+
 print(f'"{zsh_root_path}" root created.')
 
 
