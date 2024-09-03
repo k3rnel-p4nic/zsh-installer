@@ -32,7 +32,6 @@
 import os
 from sys import stderr, stdout
 from argparse import ArgumentParser
-from zsh_download_manager import download_manager
 from tarfile import open as tar_open
 from shutil import move
 from subprocess import run as run_cmd
@@ -186,7 +185,7 @@ zsh_tree = ['bin', 'etc', 'lib', 'share', 'share/lib', 'share/share', 'usr']
 
 for path in zsh_tree:
 	try:
-		os.mkdir(os.path.join(zsh_root_path, path), 0755)
+		os.mkdir(os.path.join(zsh_root_path, path), 0o755)
 	except OSError as e:
 		print(f'Error during mkdir: {e}')
 		exit(3)
